@@ -2,7 +2,7 @@ trigger:
   - main
 
 variables:
-- group: sam-backend-vars
+- group: backend-vars
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -10,14 +10,12 @@ pool:
 steps:
   - checkout: self
 
-  # SOLO verificar que SAM existe (no instalar nada)
   - script: |
       set -ex
       echo "Usando SAM CLI preinstalado:"
       sam --version
     displayName: 'Ver versión AWS SAM CLI'
 
-  # Build + Deploy usando credenciales de la Service Connection
   - task: AWSShellScript@1
     displayName: 'SAM Build & Deploy'
     inputs:
