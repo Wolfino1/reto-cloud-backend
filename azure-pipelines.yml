@@ -1,21 +1,50 @@
-# Node.js
-# Build a general Node.js project with npm.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
-
 trigger:
-- master
+  - main
+
+variables:
+- group: backend-vars
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: 'ubuntu-latest'
 
 steps:
-- task: NodeTool@0
-  inputs:
-    versionSpec: '20.x'
-  displayName: 'Install Node.js'
+  - checkout: self
 
-- script: |
-    npm install
-    npm run build
-  displayName: 'npm install and build'
+  - task: AWSCLI@1
+    displayName: 'Configurar AWS CLI desde Service Connection'
+    inputs:
+      awsCredentials: 'aws-reto-cloud-SantiagoG'
+      regionName: 'us-east-1'
+      command: 'sts'
+      arguments: 'get-caller-identity'
+
+  - script: |
+      curl -Lo aws-sam-cli.zip https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
+      unzip aws-sam-cli.zip -d sam-installation
+      sudo ./sam-installation/install
+      sam --version
+    displayName: 'Instalar AWS SAM CLI'
+
+  - script: |
+      cd backend
+      sam build
+    displayName: 'SAM Build'
+
+  - script: |
+      cd backend
+      sam deploy \
+        --stack-name reto-cloud-backend \
+        --region us-east-1 \
+        --no-confirm-changeset \
+        --resolve-s3 \
+        --capabilities CAPABILITY_IAM \
+        --parameter-overrides \
+          DbHost=$(DB_HOST) \
+          DbUser=$(DB_USER) \
+          DbPassword=$(DB_PASSWORD) \
+          DbName=$(DB_NAME) \
+          DbPort=$(DB_PORT) \
+          PrivateSubnet1=$(PRIVATE_SUBNET_1) \
+          PrivateSubnet2=$(PRIVATE_SUBNET_2) \
+          LambdaSecurityGroup=$(LAMBDA_SG)
+    displayName: 'SAM Deploy'
