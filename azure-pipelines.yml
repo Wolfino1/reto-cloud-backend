@@ -2,7 +2,7 @@ trigger:
   - main
 
 variables:
-- group: backend-vars
+- group: backend-vars 
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -30,26 +30,18 @@ steps:
         echo "Contenido de la raíz:"
         ls -la
 
-        # 1) Entrar a la carpeta backend (donde tú dijiste que está template.yml)
-        cd backend
-
-        echo "PWD dentro de backend:"
-        pwd
-        echo "Contenido de backend:"
-        ls -la
-
-        # 2) Comprobar que existe el template
-        if [ ! -f template.yml ]; then
-          echo "ERROR: No se encontró template.yml en la carpeta backend"
+        # Comprobar que existe template.yaml en la raíz
+        if [ ! -f template.yaml ]; then
+          echo "ERROR: No se encontró template.yaml en la raíz del repo"
           exit 1
         fi
 
-        # 3) Build usando el template
-        sam build -t template.yml
+        echo "Ejecutando sam build..."
+        sam build -t template.yaml
 
-        # 4) Deploy usando el mismo template
+        echo "Ejecutando sam deploy..."
         sam deploy \
-          -t template.yml \
+          -t template.yaml \
           --stack-name reto-cloud-backend \
           --region us-east-1 \
           --no-confirm-changeset \
