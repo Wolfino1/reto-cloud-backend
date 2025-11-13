@@ -2,7 +2,7 @@ trigger:
   - main
 
 variables:
-- group: sam-backend-vars
+- group: sam-backend-vars   # o backend-vars si así se llama tu Variable Group
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -10,15 +10,16 @@ pool:
 steps:
   - checkout: self
 
-  # Instalar SAM CLI (solo una vez por job)
+  # 1) Instalar SAM CLI
   - script: |
+      set -ex
       curl -Lo aws-sam-cli.zip https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
       unzip aws-sam-cli.zip -d sam-installation
       sudo ./sam-installation/install
       sam --version
     displayName: 'Instalar AWS SAM CLI'
 
-  # Build + Deploy usando credenciales de la Service Connection
+  # 2) Build + Deploy con credenciales AWS
   - task: AWSShellScript@1
     displayName: 'SAM Build & Deploy'
     inputs:
@@ -28,25 +29,23 @@ steps:
       inlineScript: |
         set -ex
 
-        echo "PWD (raíz del repo):"
+        echo "PWD:"
         pwd
         echo "Contenido de la raíz:"
         ls -la
 
-        # 1) Entrar a la carpeta backend (donde está template.yml)
-        cd backend
+        # Verificar que template.yaml exista
+        if [ ! -f template.yaml ]; then
+          echo "ERROR: No se encontró template.yaml en esta carpeta"
+          exit 1
+        fi
 
-        echo "PWD dentro de backend:"
-        pwd
-        echo "Contenido de backend:"
-        ls -la
+        echo "Ejecutando sam build..."
+        sam build -t template.yaml
 
-        # 2) Build usando el template que está en backend
-        sam build -t template.yml
-
-        # 3) Deploy usando el mismo template
+        echo "Ejecutando sam deploy..."
         sam deploy \
-          -t template.yml \
+          -t template.yaml \
           --stack-name reto-cloud-backend \
           --region us-east-1 \
           --no-confirm-changeset \
