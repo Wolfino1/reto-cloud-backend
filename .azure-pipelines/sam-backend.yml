@@ -10,14 +10,7 @@ pool:
 steps:
   - checkout: self
 
-  - task: AWSCLI@1
-    displayName: 'Configurar AWS CLI desde Service Connection'
-    inputs:
-      awsCredentials: 'aws-reto-cloud-SantiagoG'
-      regionName: 'us-east-1'
-      command: 'sts'
-      arguments: 'get-caller-identity'
-
+  # Instalar SAM CLI (solo una vez por job)
   - script: |
       curl -Lo aws-sam-cli.zip https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
       unzip aws-sam-cli.zip -d sam-installation
@@ -25,26 +18,46 @@ steps:
       sam --version
     displayName: 'Instalar AWS SAM CLI'
 
-  - script: |
-      cd backend
-      sam build
-    displayName: 'SAM Build'
+  # Build + Deploy usando credenciales de la Service Connection
+  - task: AWSShellScript@1
+    displayName: 'SAM Build & Deploy'
+    inputs:
+      awsCredentials: 'aws-reto-cloud-SantiagoG'
+      regionName: 'us-east-1'
+      scriptType: 'inline'
+      inlineScript: |
+        set -ex
 
-  - script: |
-      cd backend
-      sam deploy \
-        --stack-name reto-cloud-backend \
-        --region us-east-1 \
-        --no-confirm-changeset \
-        --resolve-s3 \
-        --capabilities CAPABILITY_IAM \
-        --parameter-overrides \
-          DbHost=$(DB_HOST) \
-          DbUser=$(DB_USER) \
-          DbPassword=$(DB_PASSWORD) \
-          DbName=$(DB_NAME) \
-          DbPort=$(DB_PORT) \
-          PrivateSubnet1=$(PRIVATE_SUBNET_1) \
-          PrivateSubnet2=$(PRIVATE_SUBNET_2) \
-          LambdaSecurityGroup=$(LAMBDA_SG)
-    displayName: 'SAM Deploy'
+        echo "PWD (raíz del repo):"
+        pwd
+        echo "Contenido de la raíz:"
+        ls -la
+
+        # 1) Entrar a la carpeta backend (donde está template.yml)
+        cd backend
+
+        echo "PWD dentro de backend:"
+        pwd
+        echo "Contenido de backend:"
+        ls -la
+
+        # 2) Build usando el template que está en backend
+        sam build -t template.yml
+
+        # 3) Deploy usando el mismo template
+        sam deploy \
+          -t template.yml \
+          --stack-name reto-cloud-backend \
+          --region us-east-1 \
+          --no-confirm-changeset \
+          --resolve-s3 \
+          --capabilities CAPABILITY_IAM \
+          --parameter-overrides \
+            DbHost=$(DB_HOST) \
+            DbUser=$(DB_USER) \
+            DbPassword=$(DB_PASSWORD) \
+            DbName=$(DB_NAME) \
+            DbPort=$(DB_PORT) \
+            PrivateSubnet1=$(PRIVATE_SUBNET_1) \
+            PrivateSubnet2=$(PRIVATE_SUBNET_2) \
+            LambdaSecurityGroup=$(LAMBDA_SG)
