@@ -29,23 +29,25 @@ steps:
       inlineScript: |
         set -ex
 
-        echo "PWD:"
+        echo "PWD (raíz del repo):"
         pwd
         echo "Contenido de la raíz:"
         ls -la
 
-        # Verificar que template.yaml exista
-        if [ ! -f template.yaml ]; then
-          echo "ERROR: No se encontró template.yaml en esta carpeta"
-          exit 1
-        fi
+        # 1) Entrar a la carpeta backend (donde está template.yml)
+        cd backend
 
-        echo "Ejecutando sam build..."
-        sam build -t template.yaml
+        echo "PWD dentro de backend:"
+        pwd
+        echo "Contenido de backend:"
+        ls -la
 
-        echo "Ejecutando sam deploy..."
+        # 2) Build usando el template que está en backend
+        sam build -t template.yml
+
+        # 3) Deploy usando el mismo template
         sam deploy \
-          -t template.yaml \
+          -t template.yml \
           --stack-name reto-cloud-backend \
           --region us-east-1 \
           --no-confirm-changeset \
