@@ -10,42 +10,32 @@ pool:
 steps:
   - checkout: self
 
-  # Opcional: ver quién eres en AWS
-  - task: AWSCLI@1
-    displayName: 'Probar credenciales AWS (sts get-caller-identity)'
-    inputs:
-      awsCredentials: 'aws-reto-cloud-SantiagoG'
-      regionName: 'us-east-1'
-      awsCommand: 'sts'
-      awsSubCommand: 'get-caller-identity'
-      awsArguments: ''
+  # Instalar SAM CLI (solo una vez por job)
+  - script: |
+      curl -Lo aws-sam-cli.zip https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
+      unzip aws-sam-cli.zip -d sam-installation
+      sudo ./sam-installation/install
+      sam --version
+    displayName: 'Instalar AWS SAM CLI'
 
-  # Aquí se hace TODO: instalar SAM, build y deploy, con credenciales
+  # Build + Deploy usando credenciales de la Service Connection
   - task: AWSShellScript@1
     displayName: 'SAM Build & Deploy'
     inputs:
       awsCredentials: 'aws-reto-cloud-SantiagoG'
       regionName: 'us-east-1'
-      scriptType: 'bash'
-      filePath: ''          # usamos inline
+      scriptType: 'inline'          # <-- AQUÍ EL CAMBIO CLAVE
       inlineScript: |
         set -e
 
-        cd "$(System.DefaultWorkingDirectory)"
-
-        echo "Instalando AWS SAM CLI..."
-        curl -Lo aws-sam-cli.zip https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
-        unzip aws-sam-cli.zip -d sam-installation
-        sudo ./sam-installation/install
-        sam --version
-
-        echo "Archivos en el repo:"
+        echo "PWD:"
+        pwd
+        echo "Contenido del repo:"
         ls
 
-        echo "SAM build..."
+        # ya estás en la raíz del repo (donde está template.yaml)
         sam build
 
-        echo "SAM deploy..."
         sam deploy \
           --stack-name reto-cloud-backend \
           --region us-east-1 \
@@ -53,11 +43,11 @@ steps:
           --resolve-s3 \
           --capabilities CAPABILITY_IAM \
           --parameter-overrides \
-            DbHost=$(DB_HOST) \
-            DbUser=$(DB_USER) \
-            DbPassword=$(DB_PASSWORD) \
-            DbName=$(DB_NAME) \
-            DbPort=$(DB_PORT) \
-            PrivateSubnet1=$(PRIVATE_SUBNET_1) \
-            PrivateSubnet2=$(PRIVATE_SUBNET_2) \
-            LambdaSecurityGroup=$(LAMBDA_SG)
+            DbHost=${DB_HOST} \
+            DbUser=${DB_USER} \
+            DbPassword=${DB_PASSWORD} \
+            DbName=${DB_NAME} \
+            DbPort=${DB_PORT} \
+            PrivateSubnet1=${PRIVATE_SUBNET_1} \
+            PrivateSubnet2=${PRIVATE_SUBNET_2} \
+            LambdaSecurityGroup=${LAMBDA_SG}
