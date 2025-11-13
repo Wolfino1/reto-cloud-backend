@@ -10,8 +10,9 @@ pool:
 steps:
   - checkout: self
 
+  # Opcional: ver quién eres en AWS
   - task: AWSCLI@1
-    displayName: 'Configurar AWS CLI desde Service Connection'
+    displayName: 'Probar credenciales AWS (sts get-caller-identity)'
     inputs:
       awsCredentials: 'aws-reto-cloud-SantiagoG'
       regionName: 'us-east-1'
@@ -19,35 +20,44 @@ steps:
       awsSubCommand: 'get-caller-identity'
       awsArguments: ''
 
-  - script: |
-      curl -Lo aws-sam-cli.zip https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
-      unzip aws-sam-cli.zip -d sam-installation
-      sudo ./sam-installation/install
-      sam --version
-      ls
-    displayName: 'Instalar AWS SAM CLI'
-    workingDirectory: $(System.DefaultWorkingDirectory)
+  # Aquí se hace TODO: instalar SAM, build y deploy, con credenciales
+  - task: AWSShellScript@1
+    displayName: 'SAM Build & Deploy'
+    inputs:
+      awsCredentials: 'aws-reto-cloud-SantiagoG'
+      regionName: 'us-east-1'
+      scriptType: 'bash'
+      filePath: ''          # usamos inline
+      inlineScript: |
+        set -e
 
-  - script: |
-      sam build
-    displayName: 'SAM Build'
-    workingDirectory: $(System.DefaultWorkingDirectory)
+        cd "$(System.DefaultWorkingDirectory)"
 
-  - script: |
-      sam deploy \
-        --stack-name reto-cloud-backend \
-        --region us-east-1 \
-        --no-confirm-changeset \
-        --resolve-s3 \
-        --capabilities CAPABILITY_IAM \
-        --parameter-overrides \
-          DbHost=$(DB_HOST) \
-          DbUser=$(DB_USER) \
-          DbPassword=$(DB_PASSWORD) \
-          DbName=$(DB_NAME) \
-          DbPort=$(DB_PORT) \
-          PrivateSubnet1=$(PRIVATE_SUBNET_1) \
-          PrivateSubnet2=$(PRIVATE_SUBNET_2) \
-          LambdaSecurityGroup=$(LAMBDA_SG)
-    displayName: 'SAM Deploy'
-    workingDirectory: $(System.DefaultWorkingDirectory)
+        echo "Instalando AWS SAM CLI..."
+        curl -Lo aws-sam-cli.zip https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
+        unzip aws-sam-cli.zip -d sam-installation
+        sudo ./sam-installation/install
+        sam --version
+
+        echo "Archivos en el repo:"
+        ls
+
+        echo "SAM build..."
+        sam build
+
+        echo "SAM deploy..."
+        sam deploy \
+          --stack-name reto-cloud-backend \
+          --region us-east-1 \
+          --no-confirm-changeset \
+          --resolve-s3 \
+          --capabilities CAPABILITY_IAM \
+          --parameter-overrides \
+            DbHost=$(DB_HOST) \
+            DbUser=$(DB_USER) \
+            DbPassword=$(DB_PASSWORD) \
+            DbName=$(DB_NAME) \
+            DbPort=$(DB_PORT) \
+            PrivateSubnet1=$(PRIVATE_SUBNET_1) \
+            PrivateSubnet2=$(PRIVATE_SUBNET_2) \
+            LambdaSecurityGroup=$(LAMBDA_SG)
