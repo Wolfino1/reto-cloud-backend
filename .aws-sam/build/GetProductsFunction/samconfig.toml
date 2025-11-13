@@ -1,0 +1,11 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "reto-cloud-backend"
+resolve_s3 = true
+s3_prefix = "reto-cloud-backend"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "DbHost=\"prod-tienda-rds-tf.cqnoe0yq0e32.us-east-1.rds.amazonaws.com\" DbUser=\"tienda_app\" DbName=\"tienda\" DbPort=\"3306\" PrivateSubnet1=\"subnet-04ab47b55c542c16b\" PrivateSubnet2=\"subnet-02d926f1a5cb390b9\" LambdaSecurityGroup=\"sg-0d67096a060a64fb2\""
+image_repositories = []

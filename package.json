@@ -1,0 +1,11 @@
+{
+  "name": "tienda-backend",
+  "version": "1.0.0",
+  "main": "src/handlers.js",
+  "scripts": {
+    "start": "node src/handlers.js"
+  },
+  "dependencies": {
+    "mysql2": "^3.9.2"
+  }
+}

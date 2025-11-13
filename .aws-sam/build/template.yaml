@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Backend tienda - Lambdas y API Gateway
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    MemorySize: 256
+    Timeout: 10
+    CodeUri: .
+    Environment:
+      Variables:
+        DB_HOST:
+          Ref: DbHost
+        DB_USER:
+          Ref: DbUser
+        DB_PASSWORD:
+          Ref: DbPassword
+        DB_NAME:
+          Ref: DbName
+        DB_PORT:
+          Ref: DbPort
+    VpcConfig:
+      SecurityGroupIds:
+      - Ref: LambdaSecurityGroup
+      SubnetIds:
+      - Ref: PrivateSubnet1
+      - Ref: PrivateSubnet2
+  Api:
+    Cors:
+      AllowOrigin: '''*'''
+      AllowHeaders: '''Content-Type'''
+      AllowMethods: '''GET,POST,OPTIONS'''
+Parameters:
+  DbHost:
+    Type: String
+    Description: RDS endpoint de prod-tienda-rds (sin puerto)
+  DbUser:
+    Type: String
+    Default: tienda_app
+  DbPassword:
+    Type: String
+    NoEcho: true
+    Default: Felix2903.
+  DbName:
+    Type: String
+    Default: tienda
+  DbPort:
+    Type: String
+    Default: '3306'
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet::Id
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet::Id
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup::Id
+Resources:
+  HealthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.health
+      Events:
+        ApiHealth:
+          Type: Api
+          Properties:
+            Path: /health
+            Method: get
+      CodeUri: HealthFunction
+    Metadata:
+      SamResourceId: HealthFunction
+  GetProductsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.getProducts
+      Events:
+        ApiGetProducts:
+          Type: Api
+          Properties:
+            Path: /products
+            Method: get
+      CodeUri: GetProductsFunction
+    Metadata:
+      SamResourceId: GetProductsFunction
+  CreateOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.createOrder
+      Events:
+        ApiCreateOrder:
+          Type: Api
+          Properties:
+            Path: /order
+            Method: post
+      CodeUri: CreateOrderFunction
+    Metadata:
+      SamResourceId: CreateOrderFunction

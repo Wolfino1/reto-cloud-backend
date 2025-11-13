@@ -1,0 +1,43 @@
+trigger:
+  - main
+
+variables:
+- group: sam-backend-vars
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - checkout: self
+
+  - task: AWSCLI@1
+    displayName: 'Configurar AWS CLI desde Service Connection'
+    inputs:
+      awsCredentials: 'aws-reto-cloud-SantiagoG'
+      regionName: 'us-east-1'
+      command: 'sts'
+      arguments: 'get-caller-identity'
+
+  - script: |
+      cd backend
+      sam build
+    displayName: 'SAM Build'
+
+  - script: |
+      cd backend
+      sam deploy \
+        --stack-name reto-cloud-backend \
+        --region us-east-1 \
+        --no-confirm-changeset \
+        --resolve-s3 \
+        --capabilities CAPABILITY_IAM \
+        --parameter-overrides \
+          DbHost=$(DB_HOST) \
+          DbUser=$(DB_USER) \
+          DbPassword=$(DB_PASSWORD) \
+          DbName=$(DB_NAME) \
+          DbPort=$(DB_PORT) \
+          PrivateSubnet1=$(PRIVATE_SUBNET_1) \
+          PrivateSubnet2=$(PRIVATE_SUBNET_2) \
+          LambdaSecurityGroup=$(LAMBDA_SG)
+    displayName: 'SAM Deploy'
