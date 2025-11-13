@@ -15,8 +15,10 @@ steps:
     inputs:
       awsCredentials: 'aws-reto-cloud-SantiagoG'
       regionName: 'us-east-1'
-      command: 'sts'
-      arguments: 'get-caller-identity'
+      awsCommand: 'sts'
+      awsSubCommand: 'get-caller-identity'
+      awsArguments: ''
+
 
   - script: |
       curl -Lo aws-sam-cli.zip https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
