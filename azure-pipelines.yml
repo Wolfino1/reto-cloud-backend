@@ -24,30 +24,40 @@ steps:
     inputs:
       awsCredentials: 'aws-reto-cloud-SantiagoG'
       regionName: 'us-east-1'
-      scriptType: 'inline'          # <-- AQUÍ EL CAMBIO CLAVE
+      scriptType: 'inline'
       inlineScript: |
-        set -e
+        set -ex
 
-        echo "PWD:"
+        echo "PWD (raíz del repo):"
         pwd
-        echo "Contenido del repo:"
-        ls
+        echo "Contenido de la raíz:"
+        ls -la
 
-        # ya estás en la raíz del repo (donde está template.yaml)
-        sam build
+        # 1) Entrar a la carpeta backend (donde está template.yml)
+        cd backend
 
+        echo "PWD dentro de backend:"
+        pwd
+        echo "Contenido de backend:"
+        ls -la
+
+        # 2) Build usando el template que está en backend
+        sam build -t template.yml
+
+        # 3) Deploy usando el mismo template
         sam deploy \
+          -t template.yml \
           --stack-name reto-cloud-backend \
           --region us-east-1 \
           --no-confirm-changeset \
           --resolve-s3 \
           --capabilities CAPABILITY_IAM \
           --parameter-overrides \
-            DbHost=${DB_HOST} \
-            DbUser=${DB_USER} \
-            DbPassword=${DB_PASSWORD} \
-            DbName=${DB_NAME} \
-            DbPort=${DB_PORT} \
-            PrivateSubnet1=${PRIVATE_SUBNET_1} \
-            PrivateSubnet2=${PRIVATE_SUBNET_2} \
-            LambdaSecurityGroup=${LAMBDA_SG}
+            DbHost=$(DB_HOST) \
+            DbUser=$(DB_USER) \
+            DbPassword=$(DB_PASSWORD) \
+            DbName=$(DB_NAME) \
+            DbPort=$(DB_PORT) \
+            PrivateSubnet1=$(PRIVATE_SUBNET_1) \
+            PrivateSubnet2=$(PRIVATE_SUBNET_2) \
+            LambdaSecurityGroup=$(LAMBDA_SG)
