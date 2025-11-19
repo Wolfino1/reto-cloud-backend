@@ -2,7 +2,7 @@ trigger:
   - main
 
 variables:
-- group: sam-backend-vars   # o backend-vars si así se llama tu Variable Group
+- group: sam-backend-vars  
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -10,7 +10,6 @@ pool:
 steps:
   - checkout: self
 
-  # 1) Instalar SAM CLI
   - script: |
       set -ex
       curl -Lo aws-sam-cli.zip https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
