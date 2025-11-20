@@ -39,6 +39,9 @@ steps:
           exit 1
         fi
 
+        echo "Instalando dependencias Node..."
+        npm ci
+
         echo "Ejecutando sam build..."
         sam build -t template.yaml
 
