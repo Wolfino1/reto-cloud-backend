@@ -12,11 +12,18 @@ steps:
 
   - script: |
       set -ex
-      curl -Lo aws-sam-cli.zip https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
-      unzip aws-sam-cli.zip -d sam-installation
-      sudo ./sam-installation/install
-      sam --version
-    displayName: 'Instalar AWS SAM CLI'
+
+      if command -v sam >/dev/null 2>&1; then
+        echo "SAM CLI ya está instalado:"
+        sam --version
+      else
+        echo "Instalando AWS SAM CLI..."
+        curl -Lo aws-sam-cli.zip https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
+        unzip aws-sam-cli.zip -d sam-installation
+        sudo ./sam-installation/install --update
+        sam --version
+      fi
+    displayName: 'Verificar / Instalar AWS SAM CLI'
 
   - task: AWSShellScript@1
     displayName: 'SAM Build & Deploy'
@@ -32,7 +39,6 @@ steps:
         echo "Contenido de la raíz:"
         ls -la
 
-        # Verificar que template.yaml exista
         if [ ! -f template.yaml ]; then
           echo "ERROR: No se encontró template.yaml en esta carpeta"
           exit 1
