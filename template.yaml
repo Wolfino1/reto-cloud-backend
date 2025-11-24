@@ -10,17 +10,21 @@ Globals:
     CodeUri: .
     Environment:
       Variables:
-        DB_HOST: !Ref DbHost
-        DB_USER: !Ref DbUser
-        DB_PASSWORD: !Ref DbPassword
-        DB_NAME: !Ref DbName
-        DB_PORT: !Ref DbPort
+        DB_SECRET_ARN: !Ref DbSecretArn
     VpcConfig:
       SecurityGroupIds:
         - !Ref LambdaSecurityGroup
       SubnetIds:
         - !Ref PrivateSubnet1
         - !Ref PrivateSubnet2
+    Policies:
+      - Statement:
+          - Sid: SecretsManagerAccess
+            Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+              - secretsmanager:DescribeSecret
+            Resource: !Ref DbSecretArn
 
   Api:
     Cors:
@@ -29,22 +33,9 @@ Globals:
       AllowMethods: "'GET,POST,OPTIONS'"
 
 Parameters:
-  DbHost:
+  DbSecretArn:
     Type: String
-    Description: RDS endpoint de prod-tienda-rds (sin puerto)
-  DbUser:
-    Type: String
-    Default: tienda_app
-  DbPassword:
-    Type: String
-    NoEcho: true
-    Default: Felix2903.
-  DbName:
-    Type: String
-    Default: tienda
-  DbPort:
-    Type: String
-    Default: '3306'
+    Description: ARN of Secrets Manager secret with DB credentials
   PrivateSubnet1:
     Type: AWS::EC2::Subnet::Id
   PrivateSubnet2:

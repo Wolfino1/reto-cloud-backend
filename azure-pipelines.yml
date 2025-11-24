@@ -2,7 +2,7 @@ trigger:
   - main
 
 variables:
-- group: backend-vars 
+- group: backend-vars  
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -12,9 +12,18 @@ steps:
 
   - script: |
       set -ex
-      echo "Usando SAM CLI preinstalado:"
-      sam --version
-    displayName: 'Ver versión AWS SAM CLI'
+
+      if command -v sam >/dev/null 2>&1; then
+        echo "SAM CLI ya está instalado:"
+        sam --version
+      else
+        echo "Instalando AWS SAM CLI..."
+        curl -Lo aws-sam-cli.zip https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
+        unzip aws-sam-cli.zip -d sam-installation
+        sudo ./sam-installation/install --update
+        sam --version
+      fi
+    displayName: 'Verificar / Instalar AWS SAM CLI'
 
   - task: AWSShellScript@1
     displayName: 'SAM Build & Deploy'
@@ -25,16 +34,18 @@ steps:
       inlineScript: |
         set -ex
 
-        echo "PWD (raíz del repo):"
+        echo "PWD:"
         pwd
         echo "Contenido de la raíz:"
         ls -la
 
-        # Comprobar que existe template.yaml en la raíz
         if [ ! -f template.yaml ]; then
-          echo "ERROR: No se encontró template.yaml en la raíz del repo"
+          echo "ERROR: No se encontró template.yaml en esta carpeta"
           exit 1
         fi
+
+        echo "Instalando dependencias Node..."
+        npm ci
 
         echo "Ejecutando sam build..."
         sam build -t template.yaml
@@ -48,11 +59,7 @@ steps:
           --resolve-s3 \
           --capabilities CAPABILITY_IAM \
           --parameter-overrides \
-            DbHost=$(DB_HOST) \
-            DbUser=$(DB_USER) \
-            DbPassword=$(DB_PASSWORD) \
-            DbName=$(DB_NAME) \
-            DbPort=$(DB_PORT) \
+            DbSecretArn=$(DB_SECRET_ARN) \
             PrivateSubnet1=$(PRIVATE_SUBNET_1) \
             PrivateSubnet2=$(PRIVATE_SUBNET_2) \
             LambdaSecurityGroup=$(LAMBDA_SG)

@@ -1,15 +1,56 @@
 const mysql = require("mysql2/promise");
+const AWS = require("aws-sdk");
+
+const secretsManager = new AWS.SecretsManager();
 
 let pool;
+let cachedConfig;
+
+async function getDbConfig() {
+  if (cachedConfig) return cachedConfig;
+
+  const secretArn = process.env.DB_SECRET_ARN;
+  if (!secretArn) {
+    console.error("DB_SECRET_ARN is not set");
+    throw new Error("Missing DB_SECRET_ARN env var");
+  }
+
+  const res = await secretsManager
+    .getSecretValue({ SecretId: secretArn })
+    .promise();
+
+  let secretString = res.SecretString;
+  if (!secretString && res.SecretBinary) {
+    secretString = Buffer.from(res.SecretBinary, "base64").toString("utf8");
+  }
+
+  const parsed = JSON.parse(secretString);
+
+  const host = parsed.host;
+  const user = parsed.username;
+  const password = parsed.password;
+  const database = parsed.dbname || parsed.database || "storedb";
+  const port = parsed.port ? Number(parsed.port) : 3306;
+
+  if (!host || !user || !password) {
+    console.error("Invalid DB secret payload", parsed);
+    throw new Error("DB secret missing required fields");
+  }
+
+  cachedConfig = { host, user, password, database, port };
+  return cachedConfig;
+}
 
 async function getPool() {
   if (!pool) {
+    const cfg = await getDbConfig();
+
     pool = await mysql.createPool({
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME || "tienda",
-      port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306,
+      host: cfg.host,
+      user: cfg.user,
+      password: cfg.password,
+      database: cfg.database,
+      port: cfg.port,
       waitForConnections: true,
       connectionLimit: 5,
       queueLimit: 0
